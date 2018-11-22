@@ -1,0 +1,582 @@
+package ac.liv.csc.comp201;
+
+//import ac.liv.csc.comp201.control.HotWaterControl;
+
+import ac.liv.csc.comp201.model.IMachine;
+import ac.liv.csc.comp201.model.IMachineController;
+import ac.liv.csc.comp201.simulate.CoinHandler;
+import ac.liv.csc.comp201.simulate.Cup;
+import ac.liv.csc.comp201.simulate.Hoppers;
+
+public class MachineController1 extends Thread implements IMachineController {
+
+    private boolean running = true;
+
+    private IMachine machine;
+
+    private static final String version = "1.22";
+
+    private double currentCredit = 0;
+
+    private StringBuffer inputBuffer = new StringBuffer();
+
+    private String keypadInput = "";
+
+    private static final int MAX_CODE_LEN = 4;
+
+    private static final int MIN_CODE_LEN = 3;
+
+    private int orderCode[] = new int[MAX_CODE_LEN];
+
+    private int keyCodeCount = 0;
+
+    private int MEDIUM_CUP_PREFIX = 5;
+
+    private int LARGE_CUP_PREFIX = 6;
+
+    private int RETURN_CHANGE_BUTTON = 9;
+
+    private boolean lockKeypad = false;
+
+    private boolean temperatureControl = true;
+
+    private double[] ingredientsTemperature = {0, 0, 0, 0, 0, 0};
+
+    public void startController(IMachine machine) {
+        //TODO
+        this.machine = machine; // Machine that is being controlled
+
+        machine.getKeyPad().setCaption(0, "0");
+        machine.getKeyPad().setCaption(1, "1");
+        machine.getKeyPad().setCaption(2, "2");
+        machine.getKeyPad().setCaption(3, "3");
+        machine.getKeyPad().setCaption(4, "4");
+        machine.getKeyPad().setCaption(5, "5");
+        machine.getKeyPad().setCaption(6, "6");
+        machine.getKeyPad().setCaption(7, "7");
+        machine.getKeyPad().setCaption(8, "8");
+        machine.getKeyPad().setCaption(9, "return changes");// test button
+        super.start();
+    }
+
+    public MachineController1() {
+
+    }
+
+    public double insertedCoin(String coinCode, double currentCredit) {
+        //TODO:make change
+        //need change line; should be in Machinecontroller
+        int coin = machine.getBalance();
+        switch (coinCode) {
+            case "ab":
+                coin += 1;
+                break;
+            case "ac":
+                coin += 5;
+                break;
+            case "ba":
+                coin += 10;
+                break;
+            case "bc":
+                coin += 20;
+                break;
+            case "bd":
+                coin += 50;
+                break;
+            case "ef":
+                coin += 100;
+                break;
+        }
+        machine.setBalance(coin);
+        currentCredit = coin;
+        return currentCredit;
+    }
+
+    public void returnChange() {
+        //TODO: make change
+        System.out.println("start changes");
+        int change = machine.getBalance();
+        int coinValue[] = {1, 5, 10, 20, 50, 100};
+        for (int index = coinValue.length - 1; index >= 0; index--) {
+            while (change / coinValue[index] > 0 && machine.getCoinHandler().coinAvailable(CoinHandler.coinCodes[index])) {
+//				int time = 1;
+//				System.out.println(index+" times: "+time);
+//				time++;
+                machine.getCoinHandler().dispenseCoin(CoinHandler.coinCodes[index]);
+                change = change - coinValue[index];
+                machine.setBalance(change);
+                System.out.println("now balance: " + change);
+            }
+        }
+    }
+
+    public void printCoinLevel() { //print coin in console
+        //TODO
+        for (int index = 0; index < CoinHandler.coinCodes.length; index++) {
+            if (index < CoinHandler.coinNames.length) {
+                System.out.print(CoinHandler.coinNames[index] + ": " + machine.getCoinHandler().getCoinHopperLevel(CoinHandler.coinCodes[index]) + " ");
+            }
+        }
+        System.out.println(" ");
+    }
+
+
+    public boolean validInput(int orderCode[], String keypadInput) {
+        //TODO
+        if (keypadInput.equals("101") | keypadInput.equals("102") | keypadInput.equals("201")
+                | keypadInput.equals("202") | keypadInput.equals("300") | keypadInput.equals("5101")
+                | keypadInput.equals("5102") | keypadInput.equals("5201") | keypadInput.equals("5202")
+                | keypadInput.equals("5300") | keypadInput.equals("6101") | keypadInput.equals("6102")
+                | keypadInput.equals("6201") | keypadInput.equals("6202") | keypadInput.equals("6300")) {
+            return true;
+        } else {
+            return false;
+
+        }
+    }
+
+    public boolean validBalance(int orderCode[], String keypadInput) {
+        //TODO
+        // check balance
+        if (keypadInput.equals("101") | keypadInput.equals("201")) {
+            if (machine.getBalance() >= 120) {
+                return true;
+            }
+        }
+        if (keypadInput.equals("102") | keypadInput.equals("202") | keypadInput.equals("5300")) {
+            if (machine.getBalance() >= 130) {
+                return true;
+            }
+        }
+        if (keypadInput.equals("300")) {
+            if (machine.getBalance() >= 110) {
+                return true;
+            }
+        }
+        if (keypadInput.equals("5101") | keypadInput.equals("5201")) {
+            if (machine.getBalance() >= 140) {
+                return true;
+            }
+        }
+        if (keypadInput.equals("5102") | keypadInput.equals("5202")) {
+            if (machine.getBalance() >= 150) {
+                return true;
+            }
+        }
+        if (keypadInput.equals("6101") | keypadInput.equals("6201")) {
+            if (machine.getBalance() >= 145) {
+                return true;
+            }
+        }
+        if (keypadInput.equals("6102") | keypadInput.equals("6202")) {
+            if (machine.getBalance() >= 155) {
+                return true;
+            }
+        }
+        if (keypadInput.equals("6300")) {
+            if (machine.getBalance() >= 135) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public void deductBalance(int orderCode[], String keypadInput) {
+        //TODO
+        // deduct balance
+        if (keypadInput.equals("101") | keypadInput.equals("201")) {
+            machine.setBalance(machine.getBalance() - 120);
+        }
+        if (keypadInput.equals("102") | keypadInput.equals("202") | keypadInput.equals("5300")) {
+            machine.setBalance(machine.getBalance() - 130);
+        }
+        if (keypadInput.equals("300")) {
+            machine.setBalance(machine.getBalance() - 110);
+        }
+        if (keypadInput.equals("5101") | keypadInput.equals("5201")) {
+            machine.setBalance(machine.getBalance() - 140);
+        }
+        if (keypadInput.equals("5102") | keypadInput.equals("5202")) {
+            machine.setBalance(machine.getBalance() - 150);
+        }
+        if (keypadInput.equals("6101") | keypadInput.equals("6201")) {
+            machine.setBalance(machine.getBalance() - 145);
+        }
+        if (keypadInput.equals("6102") | keypadInput.equals("6202")) {
+            machine.setBalance(machine.getBalance() - 155);
+        }
+        if (keypadInput.equals("6300")) {
+            machine.setBalance(machine.getBalance() - 135);
+        }
+        String balacne = String.valueOf(machine.getBalance());
+        machine.getDisplay().setTextString(balacne);
+    }
+
+    public boolean validIngredients(int orderCode[], String keypadInput) {
+        //TODO
+        if (keypadInput.equals("101")) {
+            if (machine.getHoppers().getHopperLevelsGrams(Hoppers.COFFEE) > 2) {
+                return true;
+            }
+        }
+        if (keypadInput.equals("5101")) {
+            if (machine.getHoppers().getHopperLevelsGrams(Hoppers.COFFEE) > 2.64) {
+                return true;
+            }
+        }
+        if (keypadInput.equals("6101")) {
+            if (machine.getHoppers().getHopperLevelsGrams(Hoppers.COFFEE) > 3.29) {
+                return true;
+            }
+        }
+        if (keypadInput.equals("102")) {
+            if (machine.getHoppers().getHopperLevelsGrams(Hoppers.COFFEE) > 2 && machine.getHoppers().getHopperLevelsGrams(Hoppers.SUGAR) > 5) {
+                return true;
+            }
+        }
+        if (keypadInput.equals("5102")) {
+            if (machine.getHoppers().getHopperLevelsGrams(Hoppers.COFFEE) > 2.64 && machine.getHoppers().getHopperLevelsGrams(Hoppers.SUGAR) > 6.61) {
+                return true;
+            }
+        }
+        if (keypadInput.equals("6102")) {
+            if (machine.getHoppers().getHopperLevelsGrams(Hoppers.COFFEE) > 3.29 && machine.getHoppers().getHopperLevelsGrams(Hoppers.SUGAR) > 8.23) {
+                return true;
+            }
+        }
+        if (keypadInput.equals("201")) {
+            if (machine.getHoppers().getHopperLevelsGrams(Hoppers.COFFEE) > 2 && machine.getHoppers().getHopperLevelsGrams(Hoppers.MILK) > 3) {
+                return true;
+            }
+        }
+        if (keypadInput.equals("5201")) {
+            if (machine.getHoppers().getHopperLevelsGrams(Hoppers.COFFEE) > 2.64 && machine.getHoppers().getHopperLevelsGrams(Hoppers.MILK) > 3.97) {
+                return true;
+            }
+        }
+        if (keypadInput.equals("6201")) {
+            if (machine.getHoppers().getHopperLevelsGrams(Hoppers.COFFEE) > 3.29 && machine.getHoppers().getHopperLevelsGrams(Hoppers.MILK) > 4.94) {
+                return true;
+            }
+        }
+        if (keypadInput.equals("202")) {
+            if (machine.getHoppers().getHopperLevelsGrams(Hoppers.COFFEE) > 2 && machine.getHoppers().getHopperLevelsGrams(Hoppers.MILK) > 3 && machine.getHoppers().getHopperLevelsGrams(Hoppers.SUGAR) > 5) {
+                return true;
+            }
+        }
+        if (keypadInput.equals("5202")) {
+            if (machine.getHoppers().getHopperLevelsGrams(Hoppers.COFFEE) > 2.64 && machine.getHoppers().getHopperLevelsGrams(Hoppers.MILK) > 3.97 && machine.getHoppers().getHopperLevelsGrams(Hoppers.SUGAR) > 6.61) {
+                return true;
+            }
+        }
+        if (keypadInput.equals("6202")) {
+            if (machine.getHoppers().getHopperLevelsGrams(Hoppers.COFFEE) > 3.29 && machine.getHoppers().getHopperLevelsGrams(Hoppers.MILK) > 4.94 && machine.getHoppers().getHopperLevelsGrams(Hoppers.SUGAR) > 8.23) {
+                return true;
+            }
+        }
+        if (keypadInput.equals("300")) {
+            if (machine.getHoppers().getHopperLevelsGrams(Hoppers.CHOCOLATE) > 28) {
+                return true;
+            }
+        }
+        if (keypadInput.equals("5300")) {
+            if (machine.getHoppers().getHopperLevelsGrams(Hoppers.CHOCOLATE) > 37.05) {
+                return true;
+            }
+        }
+        if (keypadInput.equals("6300")) {
+            if (machine.getHoppers().getHopperLevelsGrams(Hoppers.CHOCOLATE) > 46.11) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    //	{"Coffee","Milk (powder)","Sugar","Chocolate","Temperature","Cup litres"};
+    public double[] getIngredientsTemperature(int orderCode[], String keypadInput) {
+        //TODO
+        double[] initial = {0, 0, 0, 0, 0, 0};
+        if (keypadInput.equals("101")) {
+            double[] ingredientsTemperature = {2, 0, 0, 0, 95.9, 0.34};
+            return ingredientsTemperature;
+        }
+        if (keypadInput.equals("5101")) {
+            double[] ingredientsTemperature = {2.64, 0, 0, 0, 95.9, 0.45};
+            return ingredientsTemperature;
+        }
+        if (keypadInput.equals("6101")) {
+            double[] ingredientsTemperature = {3.29, 0, 0, 0, 95.9, 0.56};
+            return ingredientsTemperature;
+        }
+        if (keypadInput.equals("102")) {
+            double[] ingredientsTemperature = {2, 0, 5, 0, 95.9, 0.34};
+            return ingredientsTemperature;
+        }
+        if (keypadInput.equals("5102")) {
+            double[] ingredientsTemperature = {2.64, 0, 6.61, 0, 95.9, 0.45};
+            return ingredientsTemperature;
+        }
+        if (keypadInput.equals("6102")) {
+            double[] ingredientsTemperature = {3.29, 0, 8.23, 0, 95.9, 0.56};
+            return ingredientsTemperature;
+        }
+        if (keypadInput.equals("201")) {
+            double[] ingredientsTemperature = {2, 3, 0, 0, 95.9, 0.34};
+            return ingredientsTemperature;
+        }
+        if (keypadInput.equals("5201")) {
+            double[] ingredientsTemperature = {2.64, 3.97, 0, 0, 95.9, 0.45};
+            return ingredientsTemperature;
+        }
+        if (keypadInput.equals("6201")) {
+            double[] ingredientsTemperature = {3.29, 4.94, 0, 0, 95.9, 0.56};
+            return ingredientsTemperature;
+        }
+        if (keypadInput.equals("202")) {
+            double[] ingredientsTemperature = {2, 3, 5, 0, 95.9, 0.34};
+            return ingredientsTemperature;
+        }
+        if (keypadInput.equals("5202")) {
+            double[] ingredientsTemperature = {2.64, 3.97, 6.61, 0, 95.9, 0.45};
+            return ingredientsTemperature;
+        }
+        if (keypadInput.equals("6202")) {
+            double[] ingredientsTemperature = {3.29, 4.94, 8.23, 0, 95.9, 0.56};
+            return ingredientsTemperature;
+        }
+        if (keypadInput.equals("300")) {
+            double[] ingredientsTemperature = {0, 0, 0, 28, 90, 0.34};
+            return ingredientsTemperature;
+        }
+        if (keypadInput.equals("5300")) {
+            double[] ingredientsTemperature = {0, 0, 0, 37.05, 90, 0.45};
+            return ingredientsTemperature;
+        }
+        if (keypadInput.equals("6300")) {
+            double[] ingredientsTemperature = {0, 0, 0, 46.11, 90, 0.56};
+            return ingredientsTemperature;
+        }
+        return initial;
+    }
+
+
+    public void cannotControlTemperature() {
+        //TODO:
+        if (machine.getWaterHeater().getHeaterOnStatus() == false) {
+            if (machine.getWaterHeater().getHeaterOnStatus() == true) {
+                machine.shutMachineDown();
+                machine.getDisplay().setTextString("There are some errors in water heater");
+            }
+        }
+    }
+
+    public void controlTemperature() {
+        //TODO:
+        float temperature = machine.getWaterHeater().getTemperatureDegreesC();
+        if (temperature >= 75) {
+            machine.getWaterHeater().setHeaterOff();
+        }
+        if (temperature < 75) {
+            machine.getWaterHeater().setHeaterOn();
+        }
+    }
+
+
+    private synchronized void runStateMachine() {
+
+
+
+
+
+        Cup cup = machine.getCup();
+
+        if (temperatureControl == true) {
+            controlTemperature();// 控制温度
+            cannotControlTemperature();
+        }
+
+        int keyCode = machine.getKeyPad().getNextKeyCode();
+        if (lockKeypad == false) {
+
+            // System.out.println("Key is "+keyCode);
+
+            if (keyCode != -1) {
+                if (keyCode == RETURN_CHANGE_BUTTON) {
+                    returnChange();
+//					machine.getCoinHandler().getCoinTray();
+//					machine.getCoinHandler().clearCoinTry();
+                } else {
+                    if (keyCodeCount < MAX_CODE_LEN) { // only store up maximum code length
+                        orderCode[keyCodeCount++] = keyCode;
+                    }
+                    int codeLen = MIN_CODE_LEN;
+                    if (orderCode[0] == LARGE_CUP_PREFIX) { // codes with prefix are a little longer
+                        codeLen = MAX_CODE_LEN;
+                    }
+                    if (orderCode[0] == MEDIUM_CUP_PREFIX) { // codes with prefix are a little longer
+                        codeLen = MAX_CODE_LEN;
+                    }
+                    if (keyCodeCount >= codeLen) { // we have got a key code of target length
+                        for (int idx = 0; idx < codeLen; idx++) {
+                            System.out.println("Code is " + orderCode[idx]);
+                            inputBuffer.append(orderCode[idx]);
+                        }
+                        keypadInput = inputBuffer.toString();
+                        System.out.println(keypadInput);
+
+                        // TO do check code is valid 101 102 etc, check balance
+                        // check ingredient level if all ok then make a drink
+
+                        // valid input
+                        boolean validInput = validInput(orderCode, keypadInput);
+                        //valid balance
+                        boolean validBalance = validBalance(orderCode, keypadInput);
+                        //valid ingredients
+                        //{"Coffee","Milk (powder)","Sugar","Chocolate","Temperature","Cup litres"};
+                        boolean validIngredients = validIngredients(orderCode, keypadInput);
+
+                        if (validInput) {
+                            System.out.println("validInput");
+                            if (validBalance) {
+                                System.out.println("balance enough");
+                                //deduct balance
+                                deductBalance(orderCode, keypadInput);
+                                //get ingredients amount and initial temperature
+                                ingredientsTemperature = getIngredientsTemperature(orderCode, keypadInput);
+                                //put cup
+                                if (validIngredients) {
+                                    System.out.println("ingredients enough");
+                                    if (orderCode[0] == 1 | orderCode[0] == 2 | orderCode[0] == 3) {
+                                        machine.vendCup(Cup.SMALL_CUP);
+                                    }
+                                    if (orderCode[0] == MEDIUM_CUP_PREFIX) {
+                                        machine.vendCup(Cup.MEDIUM_CUP);
+                                    }
+                                    if (orderCode[0] == LARGE_CUP_PREFIX) {
+                                        machine.vendCup(Cup.LARGE_CUP);
+                                    }
+                                    lockKeypad = true;
+                                    System.out.println(lockKeypad);
+                                    machine.getDisplay().setTextString("start to make drink");
+                                } else {
+                                    machine.getDisplay().setTextString("Ingredients not enough");
+                                }
+                            } else {
+                                machine.getDisplay().setTextString("Balance not enough");
+                            }
+                        } else {
+                            machine.getDisplay().setTextString("invalid input");
+                        }
+
+                        inputBuffer.delete(0, inputBuffer.length());
+                        keypadInput = "";
+                        keyCodeCount = 0; // used up this code
+                    }
+                }
+            }
+        }
+
+//		code to make the drink
+        if (cup != null) {
+
+            System.out.println("cup!" + cup.getCoffeeGrams() + " " + cup.getMilkGrams() + " " + cup.getSugarGrams() + " " + cup.getSugarGrams() + " " + cup.getChocolateGrams() + " " + cup.getWaterLevelLitres());
+            if (cup.getCoffeeGrams() < ingredientsTemperature[0]) {
+                machine.getHoppers().setHopperOn(Hoppers.COFFEE);
+            } else {
+                machine.getHoppers().setHopperOff(Hoppers.COFFEE);
+            }
+            if (cup.getMilkGrams() < ingredientsTemperature[1]) {
+                machine.getHoppers().setHopperOn(Hoppers.MILK);
+            } else {
+                machine.getHoppers().setHopperOff(Hoppers.MILK);
+            }
+            if (cup.getSugarGrams() < ingredientsTemperature[2]) {
+                machine.getHoppers().setHopperOn(Hoppers.SUGAR);
+            } else {
+                machine.getHoppers().setHopperOff(Hoppers.SUGAR);
+            }
+            if (cup.getChocolateGrams() < ingredientsTemperature[3]) {
+                machine.getHoppers().setHopperOn(Hoppers.CHOCOLATE);
+            } else {
+                machine.getHoppers().setHopperOff(Hoppers.CHOCOLATE);
+            }
+
+            if (cup.getWaterLevelLitres() == 0) {
+
+                machine.getCoinHandler().lockCoinHandler();
+
+                if (machine.getWaterHeater().getTemperatureDegreesC() <= ingredientsTemperature[4]) {
+                    temperatureControl = false;
+                    machine.getWaterHeater().setHeaterOn();
+                } else {
+                    machine.getWaterHeater().setHotWaterTap(true);
+                }
+            }
+
+            if (cup.getWaterLevelLitres() > 0 && cup.getWaterLevelLitres() < ingredientsTemperature[5] * 0.2) {
+                machine.getWaterHeater().setHotWaterTap(true);
+                if (machine.getWaterHeater().getTemperatureDegreesC() >= ingredientsTemperature[4]) {
+                    machine.getWaterHeater().setHotWaterTap(true);
+                } else {
+                    machine.getWaterHeater().setHotWaterTap(false);
+                }
+            }
+            if (cup.getWaterLevelLitres() > ingredientsTemperature[5] * 0.2 && cup.getWaterLevelLitres() < ingredientsTemperature[5]) {
+                if (cup.getTemperatureInC() >= 80) {
+                    //machine.getWaterHeater().setHeaterOff();
+                    machine.getWaterHeater().setColdWaterTap(true);
+                } else {
+                    machine.getWaterHeater().setHeaterOn();
+                    machine.getWaterHeater().setColdWaterTap(false);
+                    machine.getWaterHeater().setHotWaterTap(true);
+                }
+            }
+
+            if (cup.getWaterLevelLitres() >= ingredientsTemperature[5]) {
+                machine.getWaterHeater().setHotWaterTap(false);
+                machine.getWaterHeater().setColdWaterTap(false);
+                machine.getCoinHandler().unlockCoinHandler();
+                lockKeypad = false;
+                temperatureControl = true;
+            }
+        }
+
+        String coinCode = machine.getCoinHandler().getCoinKeyCode();
+        if (coinCode != null) {
+            System.out.println("Got coin code .." + coinCode);
+            machine.getDisplay().setTextString("Got coin code .." + coinCode);
+
+            currentCredit = insertedCoin(coinCode, currentCredit);
+            machine.getDisplay().setTextString("Now coin" + (currentCredit / 100));
+            // handleCoin.CoinAmount(coinCode);
+            printCoinLevel();
+            System.out.println(machine.getBalance());
+        }
+    }
+
+
+    public void run() {
+        // Controlling thread for coffee machine
+        int counter = 1;
+        while (running) {
+            // machine.getDisplay().setTextString("Running drink machine controller
+            // "+counter);
+            counter++;
+            try {
+                Thread.sleep(10); // Set this delay time to lower rate if you want to increase the rate
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            runStateMachine();
+        }
+    }
+
+    public void updateController() {
+        // runStateMachine();
+    }
+
+    public void stopController() {
+        running = false;
+    }
+
+}
